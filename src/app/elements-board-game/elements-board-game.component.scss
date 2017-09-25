@@ -1,0 +1,10 @@
+@import "../../imports.scss";
+
+
+:host{
+  display:block;
+  width:inherit;
+  height:inherit;
+  background-color:$gray-dark;
+  color: $white;
+}
