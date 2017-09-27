@@ -1,0 +1,23 @@
+@import '../styles';
+
+
+
+nav.navigation {
+  @extend .navbar, .navbar-toggleable-md, .navbar-light, .bg-faded;
+
+  .brand {
+    @extend .navbar-brand;
+  }
+
+  .list {
+    @extend .navbar-nav, .mr-auto;
+
+    .item {
+      @extend .nav-item;
+
+      a {
+        @extend .nav-link;
+      }
+    }
+  }
+}

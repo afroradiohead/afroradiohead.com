@@ -1,0 +1,7 @@
+<h1>
+  Brick Ball [WIP]
+</h1>
+
+<app-launcher [config]="launcherConfig$ | async"></app-launcher>
+
+<app-ball *ngFor="let ballConfig of ballConfigList$ | async" [config]="ballConfig"></app-ball>
