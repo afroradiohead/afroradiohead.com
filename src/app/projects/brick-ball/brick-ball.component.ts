@@ -1,8 +1,8 @@
 import {Component, ElementRef, OnInit} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import * as Victor from 'victor';
-import {LauncherConfig} from "./launcher/launcher.component";
-import {BallConfig} from "./ball/ball.component";
+import {LauncherConfig} from './launcher/launcher.component';
+import {BallConfig} from './ball/ball.component';
 
 @Component({
   selector: 'app-brick-ball',

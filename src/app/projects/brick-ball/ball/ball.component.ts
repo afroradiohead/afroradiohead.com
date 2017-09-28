@@ -25,6 +25,7 @@ export class BallComponent implements OnInit {
   constructor(private el: ElementRef) { }
 
   ngOnInit() {
+    console.log('asdfsfd');
 
     const ticker$ = Observable
       .interval(TICKER_INTERVAL, Scheduler.animationFrame)
