@@ -18,34 +18,33 @@ export class BrickBallComponent implements OnInit {
 
   ngOnInit() {
     this.launcherConfig$ = Observable.fromEvent(this.el.nativeElement, 'mousemove')
-      .combineLatest(
-        this.sizeV$,
-        (event: MouseEvent, sizeV) => {
-          const launcherPositionV = new Victor(sizeV.x / 2, sizeV.y);
-          return {
-            positionV: launcherPositionV,
-            directionV: Victor.fromArray([event.offsetX, event.offsetY]).subtract(launcherPositionV)
-          };
-        }
-      );
+      .combineLatest(this.sizeV$)
+      .map(data => {
+        const event = <MouseEvent>data[0];
+        const sizeV = data[1];
+        const launcherPositionV = new Victor(sizeV.x / 2, sizeV.y);
+        return {
+          positionV: launcherPositionV,
+          directionV: Victor.fromArray([event.offsetX, event.offsetY]).subtract(launcherPositionV)
+        };
+      });
+    this.ballConfigList$ = Observable.fromEvent(this.el.nativeElement, 'click')
+      .withLatestFrom(this.launcherConfig$, this.sizeV$)
+      .map(data => {
+        const launcherConfig = data[1];
+        const sizeV = data[2];
+        return [{
+          containerSizeV: sizeV,
+          positionV: launcherConfig.positionV,
+          directionV: launcherConfig.directionV
+        }];
+      });
 
     this.sizeV$
       .subscribe(sizeV => {
         this.el.nativeElement.style.width = `${sizeV.x}px`;
         this.el.nativeElement.style.height = `${sizeV.y}px`;
       });
-
-    this.ballConfigList$ = Observable.fromEvent(this.el.nativeElement, 'click')
-      .withLatestFrom(
-        this.launcherConfig$,
-        this.sizeV$,
-        (event: MouseEvent, launcherConfig, sizeV) => {
-          return [{
-            containerSizeV: sizeV,
-            positionV: launcherConfig.positionV,
-            directionV: launcherConfig.directionV
-          }];
-        });
   }
 
 }

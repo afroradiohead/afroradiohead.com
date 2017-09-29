@@ -22,7 +22,7 @@ const ticker$ = Observable
     })
   );
 
-enum X_DIRECTION {LEFT, RIGHT};
+enum X_DIRECTION {LEFT, RIGHT, CENTER}
 
 @Component({
   selector: 'app-ball',
@@ -30,65 +30,65 @@ enum X_DIRECTION {LEFT, RIGHT};
   styleUrls: ['./ball.component.scss']
 })
 export class BallComponent implements OnInit {
-  positionV$: Observable<Victor>;
   config$: BehaviorSubject<BallConfig> = new BehaviorSubject(null);
   @Input() set config(v: BallConfig) {
     this.config$.next(v);
   }
+  xDirection$: BehaviorSubject<X_DIRECTION> = new BehaviorSubject(X_DIRECTION.CENTER);
+  positionV$: Observable<Victor>;
   directionV$: Observable<Victor>;
-  speedPerSecond = 500;
+  speedPerSecond = 300;
   constructor(private el: ElementRef) { }
 
   ngOnInit() {
     this.directionV$ = this.config$
-      .map(config => config.directionV.normalize())
-      .withLatestFrom()
+      .combineLatest(this.xDirection$)
+      .map(data => {
+        const config = data[0];
+        const xDirection = data[1];
+
+        // console.log(xDirection);
+
+        return config.directionV.normalize();
+      })
 
     let position = new Victor(0, 0);
 
     this.positionV$ = ticker$
-      .withLatestFrom(
-        this.config$.do(config => position = config.positionV),
-        (ticker, config) => {
-          let directionV = config.directionV.normalize().clone();
+      .withLatestFrom(this.directionV$, this.config$.do(config => position = config.positionV))
+      .map(data => {
+        const ticker = data[0];
+        const directionV = data[1];
 
-          // if(invertX){
-          //   directionV = directionV.invertX();
-          // }
-          position = config.directionV.normalize().clone()
-            .invertX()
-            // .invertY()
-            .multiplyScalar( this.speedPerSecond * ticker.deltaTime)
-            .add(position); //@todo eww
-          return position;
-        });
-
-    // this.XDirection$ =
-    //   Observable.of(X_DIRECTION.RIGHT)
-    //     .combineLatest(
-    //       this.positionV$,
-    //       this.config$,
-    //       (xDirection, positionV, configV) => {
-    //         if(positionV >= configV.containerSizeV.x) {
-    //           return X_DIRECTION.LEFT;
-    //         }
-    //       }
-    //     );
-    // Observable.of(new Victor(1, 1))
-    //   .withLatestFrom(poition)
-    // this.positionV$.withLatestFrom(
-    //   this.config$,
-    //   (positionV, configV) => {
-    //     if(positionV.x )
-    //     if(positionV.X, configV.containerSizeV.x)
-    //   }
-    // )
+        position = directionV.clone() //@todo eww
+          .multiplyScalar( this.speedPerSecond * ticker.deltaTime)
+          .add(position);
+        return position;
+      });
 
 
     this.positionV$.subscribe(positionV => {
       this.el.nativeElement.style.left = `${positionV.x}px`;
       this.el.nativeElement.style.top = `${positionV.y}px`;
     });
+
+    this.positionV$
+      .combineLatest(this.config$)
+      .map(data => {
+        const positionV = data[0];
+        const config = data[1];
+
+        if (positionV.x <= 0) {
+          return X_DIRECTION.LEFT;
+        }
+        if (positionV.x >= config.containerSizeV.x) {
+          return X_DIRECTION.RIGHT;
+        }
+        return null;
+      })
+      .distinctUntilChanged()
+      .scan(function(acc) { return acc + 1; }, 0)
+      .subscribe(console.log);
   }
 
 }
