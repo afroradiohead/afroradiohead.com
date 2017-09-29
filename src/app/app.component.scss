@@ -1,9 +1,9 @@
-@import '../styles';
+@import '../imports';
 
 
 
 nav.navigation {
-  @extend .navbar, .navbar-toggleable-md, .navbar-light, .bg-faded;
+  @extend .navbar, .navbar-light;
 
   .brand {
     @extend .navbar-brand;

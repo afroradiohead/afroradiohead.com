@@ -5,9 +5,24 @@ import * as Victor from 'victor';
 export interface BallConfig {
   directionV: Victor;
   positionV: Victor;
+  containerSizeV: Victor;
 }
 
 const TICKER_INTERVAL = 0;
+const ticker$ = Observable
+  .interval(TICKER_INTERVAL, Scheduler.animationFrame)
+  .map(() => ({
+    time: Date.now(),
+    deltaTime: null
+  }))
+  .scan(
+    (previous, current) => ({
+      time: current.time,
+      deltaTime: (current.time - previous.time) / 1000
+    })
+  );
+
+enum X_DIRECTION {LEFT, RIGHT};
 
 @Component({
   selector: 'app-ball',
@@ -25,23 +40,9 @@ export class BallComponent implements OnInit {
   constructor(private el: ElementRef) { }
 
   ngOnInit() {
-    console.log('asdfsfd');
-
-    const ticker$ = Observable
-      .interval(TICKER_INTERVAL, Scheduler.animationFrame)
-      .map(() => ({
-        time: Date.now(),
-        deltaTime: null
-      }))
-      .scan(
-        (previous, current) => ({
-          time: current.time,
-          deltaTime: (current.time - previous.time) / 1000
-        })
-      );
-    this.config$.subscribe(e => console.log(e));
     this.directionV$ = this.config$
-      .map(config => config.directionV.normalize());
+      .map(config => config.directionV.normalize())
+      .withLatestFrom()
 
     let position = new Victor(0, 0);
 
@@ -49,9 +50,39 @@ export class BallComponent implements OnInit {
       .withLatestFrom(
         this.config$.do(config => position = config.positionV),
         (ticker, config) => {
-          position = config.directionV.normalize().clone().multiplyScalar( this.speedPerSecond * ticker.deltaTime).add(position);
+          let directionV = config.directionV.normalize().clone();
+
+          // if(invertX){
+          //   directionV = directionV.invertX();
+          // }
+          position = config.directionV.normalize().clone()
+            .invertX()
+            // .invertY()
+            .multiplyScalar( this.speedPerSecond * ticker.deltaTime)
+            .add(position); //@todo eww
           return position;
         });
+
+    // this.XDirection$ =
+    //   Observable.of(X_DIRECTION.RIGHT)
+    //     .combineLatest(
+    //       this.positionV$,
+    //       this.config$,
+    //       (xDirection, positionV, configV) => {
+    //         if(positionV >= configV.containerSizeV.x) {
+    //           return X_DIRECTION.LEFT;
+    //         }
+    //       }
+    //     );
+    // Observable.of(new Victor(1, 1))
+    //   .withLatestFrom(poition)
+    // this.positionV$.withLatestFrom(
+    //   this.config$,
+    //   (positionV, configV) => {
+    //     if(positionV.x )
+    //     if(positionV.X, configV.containerSizeV.x)
+    //   }
+    // )
 
 
     this.positionV$.subscribe(positionV => {

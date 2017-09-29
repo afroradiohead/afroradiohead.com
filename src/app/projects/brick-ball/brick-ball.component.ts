@@ -39,8 +39,9 @@ export class BrickBallComponent implements OnInit {
       .withLatestFrom(
         this.launcherConfig$,
         this.sizeV$,
-        (event: MouseEvent, launcherConfig) => {
+        (event: MouseEvent, launcherConfig, sizeV) => {
           return [{
+            containerSizeV: sizeV,
             positionV: launcherConfig.positionV,
             directionV: launcherConfig.directionV
           }];
