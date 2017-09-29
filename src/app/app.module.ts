@@ -5,6 +5,7 @@ import { AppComponent } from './app.component';
 import { BrickBallComponent } from './projects/brick-ball/brick-ball.component';
 import { LauncherComponent } from './projects/brick-ball/launcher/launcher.component';
 import { BallComponent } from './projects/brick-ball/ball/ball.component';
+import {TickerService} from "./services/ticker.service";
 
 @NgModule({
   declarations: [
@@ -16,7 +17,7 @@ import { BallComponent } from './projects/brick-ball/ball/ball.component';
   imports: [
     BrowserModule
   ],
-  providers: [],
+  providers: [TickerService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

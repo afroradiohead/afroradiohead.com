@@ -1,26 +1,13 @@
-import {Component, ElementRef, Input, OnInit} from '@angular/core';
+import {Component, ElementRef, Input, OnDestroy, OnInit} from '@angular/core';
 import {BehaviorSubject, Observable, Subject, Scheduler} from 'rxjs';
 import * as Victor from 'victor';
+import {TickerService} from "../../../services/ticker.service";
 
 export interface BallConfig {
   directionV: Victor;
   positionV: Victor;
   containerSizeV: Victor;
 }
-
-const TICKER_INTERVAL = 0;
-const ticker$ = Observable
-  .interval(TICKER_INTERVAL, Scheduler.animationFrame)
-  .map(() => ({
-    time: Date.now(),
-    deltaTime: null
-  }))
-  .scan(
-    (previous, current) => ({
-      time: current.time,
-      deltaTime: (current.time - previous.time) / 1000
-    })
-  );
 
 enum X_DIRECTION {LEFT, RIGHT}
 
@@ -29,8 +16,9 @@ enum X_DIRECTION {LEFT, RIGHT}
   templateUrl: './ball.component.html',
   styleUrls: ['./ball.component.scss']
 })
-export class BallComponent implements OnInit {
+export class BallComponent implements OnInit, OnDestroy {
   config$: BehaviorSubject<BallConfig> = new BehaviorSubject(null);
+  destroyed$: Subject<boolean> = new Subject();
   @Input() set config(v: BallConfig) {
     this.config$.next(v);
   }
@@ -38,7 +26,7 @@ export class BallComponent implements OnInit {
   positionV$: Observable<Victor>;
   directionV$: Observable<Victor>;
   speedPerSecond = 300;
-  constructor(private el: ElementRef) { }
+  constructor(private el: ElementRef, private tickerService: TickerService) { }
 
   ngOnInit() {
     this.directionV$ = this.config$
@@ -50,11 +38,13 @@ export class BallComponent implements OnInit {
           return config.directionV.normalize().clone().invertX();
         }
         return config.directionV.clone().normalize();
-      });
+      })
+      .takeUntil(this.destroyed$);
+
 
     let position = new Victor(0, 0);
 
-    this.positionV$ = ticker$
+    this.positionV$ = this.tickerService.get()
       .withLatestFrom(this.directionV$, this.config$.do(config => position = config.positionV))
       .map(data => {
         const ticker = data[0];
@@ -64,13 +54,16 @@ export class BallComponent implements OnInit {
           .multiplyScalar( this.speedPerSecond * ticker.deltaTime)
           .add(position);
         return position;
+      })
+      .takeUntil(this.destroyed$);
+
+
+    this.positionV$
+      .takeUntil(this.destroyed$)
+      .subscribe(positionV => {
+        this.el.nativeElement.style.left = `${positionV.x}px`;
+        this.el.nativeElement.style.top = `${positionV.y}px`;
       });
-
-
-    this.positionV$.subscribe(positionV => {
-      this.el.nativeElement.style.left = `${positionV.x}px`;
-      this.el.nativeElement.style.top = `${positionV.y}px`;
-    });
 
     this.positionV$
       .combineLatest(this.config$)
@@ -89,7 +82,12 @@ export class BallComponent implements OnInit {
       .skip(1)
       .filter(v => v !== null)
       .scan(function(acc) { return acc + 1; }, 0)
+      .takeUntil(this.destroyed$)
       .subscribe(v => this.xWallHitCount$.next(v));
   }
 
+  ngOnDestroy() {
+    this.destroyed$.next(true);
+    this.destroyed$.complete();
+  }
 }
