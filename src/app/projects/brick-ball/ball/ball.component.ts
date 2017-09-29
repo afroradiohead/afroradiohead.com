@@ -22,7 +22,7 @@ const ticker$ = Observable
     })
   );
 
-enum X_DIRECTION {LEFT, RIGHT, CENTER}
+enum X_DIRECTION {LEFT, RIGHT}
 
 @Component({
   selector: 'app-ball',
@@ -34,7 +34,7 @@ export class BallComponent implements OnInit {
   @Input() set config(v: BallConfig) {
     this.config$.next(v);
   }
-  xDirection$: BehaviorSubject<X_DIRECTION> = new BehaviorSubject(X_DIRECTION.CENTER);
+  xWallHitCount$: BehaviorSubject<number> = new BehaviorSubject(0);
   positionV$: Observable<Victor>;
   directionV$: Observable<Victor>;
   speedPerSecond = 300;
@@ -42,15 +42,15 @@ export class BallComponent implements OnInit {
 
   ngOnInit() {
     this.directionV$ = this.config$
-      .combineLatest(this.xDirection$)
+      .combineLatest(this.xWallHitCount$)
       .map(data => {
         const config = data[0];
-        const xDirection = data[1];
-
-        // console.log(xDirection);
-
-        return config.directionV.normalize();
-      })
+        const wallHitCount = data[1];
+        if (Math.abs(wallHitCount % 2) === 1) { // is an odd number
+          return config.directionV.normalize().clone().invertX();
+        }
+        return config.directionV.clone().normalize();
+      });
 
     let position = new Victor(0, 0);
 
@@ -77,7 +77,6 @@ export class BallComponent implements OnInit {
       .map(data => {
         const positionV = data[0];
         const config = data[1];
-
         if (positionV.x <= 0) {
           return X_DIRECTION.LEFT;
         }
@@ -87,8 +86,10 @@ export class BallComponent implements OnInit {
         return null;
       })
       .distinctUntilChanged()
+      .skip(1)
+      .filter(v => v !== null)
       .scan(function(acc) { return acc + 1; }, 0)
-      .subscribe(console.log);
+      .subscribe(v => this.xWallHitCount$.next(v));
   }
 
 }
