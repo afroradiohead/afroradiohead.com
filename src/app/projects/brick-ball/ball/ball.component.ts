@@ -7,6 +7,7 @@ export interface BallConfig {
   directionV: Victor;
   positionV: Victor;
   containerSizeV: Victor;
+  index: number;
 }
 
 enum X_DIRECTION {LEFT, RIGHT}
@@ -25,7 +26,7 @@ export class BallComponent implements OnInit, OnDestroy {
   xWallHitCount$: BehaviorSubject<number> = new BehaviorSubject(0);
   positionV$: Observable<Victor>;
   directionV$: Observable<Victor>;
-  speedPerSecond = 300;
+  speed = 300;
   constructor(private el: ElementRef, private tickerService: TickerService) { }
 
   ngOnInit() {
@@ -35,34 +36,35 @@ export class BallComponent implements OnInit, OnDestroy {
         const config = data[0];
         const wallHitCount = data[1];
         if (Math.abs(wallHitCount % 2) === 1) { // is an odd number
-          return config.directionV.normalize().clone().invertX();
+          return config.directionV.clone().normalize().invertX();
         }
         return config.directionV.clone().normalize();
-      })
-      .takeUntil(this.destroyed$);
-
-
-    let position = new Victor(0, 0);
+      });
 
     this.positionV$ = this.tickerService.get()
-      .withLatestFrom(this.directionV$, this.config$.do(config => position = config.positionV))
+      .withLatestFrom(this.directionV$)
       .map(data => {
         const ticker = data[0];
         const directionV = data[1];
 
-        position = directionV.clone() //@todo eww
-          .multiplyScalar( this.speedPerSecond * ticker.deltaTime)
-          .add(position);
-        return position;
+        return directionV.clone().multiplyScalar( this.speed * ticker.deltaTime); // deltaPosition
       })
-      .takeUntil(this.destroyed$);
+      .scan((a, c) => a.add(c), new Victor(0, 0))
+      .withLatestFrom(this.config$)
+      .map(data => {
+        const deltaPositionV = data[0];
+        const config = data[1];
+        const indexicalPositionV = config.directionV.clone().normalize().multiplyScalar(config.index * 50);
 
+        return config.positionV.clone()
+          .add(deltaPositionV)
+          .subtract(indexicalPositionV);
+      });
 
     this.positionV$
       .takeUntil(this.destroyed$)
       .subscribe(positionV => {
-        this.el.nativeElement.style.left = `${positionV.x}px`;
-        this.el.nativeElement.style.top = `${positionV.y}px`;
+        this.el.nativeElement.style.transform = `translate3d(${positionV.x}px, ${positionV.y}px, 0)`;
       });
 
     this.positionV$
