@@ -25,29 +25,23 @@ export class BallComponent implements OnInit, OnDestroy {
   }
   xWallHitCount$: BehaviorSubject<number> = new BehaviorSubject(0);
   positionV$: Observable<Victor>;
-  directionV$: Observable<Victor>;
   speed = 300;
   constructor(private el: ElementRef, private tickerService: TickerService) { }
 
   ngOnInit() {
-    this.directionV$ = this.config$
-      .combineLatest(this.xWallHitCount$)
-      .map(data => {
-        const config = data[0];
-        const wallHitCount = data[1];
-        if (Math.abs(wallHitCount % 2) === 1) { // is an odd number
-          return config.directionV.clone().normalize().invertX();
-        }
-        return config.directionV.clone().normalize();
-      });
-
     this.positionV$ = this.tickerService.get()
-      .withLatestFrom(this.directionV$)
+      .withLatestFrom(this.config$, this.xWallHitCount$)
       .map(data => {
         const ticker = data[0];
-        const directionV = data[1];
+        const config = data[1];
+        const wallHitCount = data[2];
+        const deltaDistance = this.speed * ticker.deltaTime;
+        const directionV = config.directionV.clone().normalize();
 
-        return directionV.clone().multiplyScalar( this.speed * ticker.deltaTime); // deltaPosition
+        if (Math.abs(wallHitCount % 2) === 1) { // is an odd number
+          directionV.normalize().invertX();
+        }
+        return directionV.multiplyScalar(deltaDistance); // deltaPosition
       })
       .scan((a, c) => a.add(c), new Victor(0, 0))
       .withLatestFrom(this.config$)
@@ -61,10 +55,13 @@ export class BallComponent implements OnInit, OnDestroy {
           .subtract(indexicalPositionV);
       });
 
+
     this.positionV$
       .takeUntil(this.destroyed$)
       .subscribe(positionV => {
-        this.el.nativeElement.style.transform = `translate3d(${positionV.x}px, ${positionV.y}px, 0)`;
+        // if(this.config$.getValue().index === 0) {
+          this.el.nativeElement.style.transform = `translate3d(${positionV.x}px, ${positionV.y}px, 0)`;
+        // }
       });
 
     this.positionV$

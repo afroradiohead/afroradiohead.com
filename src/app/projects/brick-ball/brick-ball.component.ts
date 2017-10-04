@@ -37,7 +37,7 @@ export class BrickBallComponent implements OnInit {
         const launcherConfig = data[1];
         const sizeV = data[2];
 
-        return _.times(10, index => {
+        return _.times(100, index => {
           return {
             index: index,
             containerSizeV: sizeV,
